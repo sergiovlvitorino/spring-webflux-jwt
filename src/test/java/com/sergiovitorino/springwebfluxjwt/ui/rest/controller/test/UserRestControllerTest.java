@@ -1,5 +1,7 @@
 package com.sergiovitorino.springwebfluxjwt.ui.rest.controller.test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sergiovitorino.springwebfluxjwt.application.command.user.SaveCommand;
 import com.sergiovitorino.springwebfluxjwt.application.service.UserService;
 import com.sergiovitorino.springwebfluxjwt.domain.document.Authority;
@@ -7,16 +9,16 @@ import com.sergiovitorino.springwebfluxjwt.domain.document.Role;
 import com.sergiovitorino.springwebfluxjwt.domain.document.User;
 import com.sergiovitorino.springwebfluxjwt.domain.repository.RoleRepository;
 import com.sergiovitorino.springwebfluxjwt.domain.repository.UserRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -28,22 +30,28 @@ import java.util.ArrayList;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class UserRestControllerTest {
 
-    @Autowired private UserService userService;
-    @Autowired private WebTestClient webTestClient;
-    @LocalServerPort private int port;
+    @Autowired
+    private UserService userService;
+    @Autowired
+    private WebTestClient webTestClient;
+    @LocalServerPort
+    private int port;
     private static User user;
     private static Role role;
     private static HttpHeaders httpHeaders;
-    @Autowired private RoleRepository roleRepository;
-    @Autowired private UserRepository userRepository;
+    @Autowired
+    private RoleRepository roleRepository;
+    @Autowired
+    private UserRepository userRepository;
     private static int countTests = 0;
-    private static final int TOTAL_TESTS = 2;
-    @Autowired private ObjectMapper mapper;
+    private static final int TOTAL_TESTS = 4;
+    @Autowired
+    private ObjectMapper mapper;
 
     @BeforeEach
-    public void setUp(){
-        countTests++;
-        if (user == null){
+    public void setUp() {
+        countTests += 1;
+        if (user == null) {
             role = new Role();
             role.setName("ADMIN");
             role.setAuthorities(new ArrayList<>());
@@ -78,11 +86,10 @@ class UserRestControllerTest {
     }
 
     @AfterEach
-    public void teardown(){
-        if (TOTAL_TESTS == 2){
+    public void teardown() {
+        if (countTests == TOTAL_TESTS) {
             roleRepository.deleteAll().block();
             userRepository.deleteAll().block();
-            user = null;
         }
     }
 
@@ -110,7 +117,7 @@ class UserRestControllerTest {
                 .getResponseBody();
 
         Assertions.assertEquals(command.getEmail(), userResult.getEmail());
-        userRepository.delete(user).block();
+        userRepository.delete(userResult).block();
 
     }
 
@@ -145,6 +152,21 @@ class UserRestControllerTest {
         Assertions.assertEquals(user.getId(), userResult.getId());
     }
 
+    @Test
+    void testIfGetCurrentUser() {
+        final var usernameResult = webTestClient
+                .get()
+                .uri("/user/currentUser")
+                .header(HttpHeaders.AUTHORIZATION, httpHeaders.getFirst(HttpHeaders.AUTHORIZATION))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(String.class)
+                .returnResult()
+                .getResponseBody();
+        Assertions.assertEquals(user.getUsername(), usernameResult);
+    }
 
 
 }
