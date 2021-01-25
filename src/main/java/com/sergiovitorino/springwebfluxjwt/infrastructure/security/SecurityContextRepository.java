@@ -3,6 +3,8 @@ package com.sergiovitorino.springwebfluxjwt.infrastructure.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.web.server.context.ServerSecurityContextRepository;
@@ -31,9 +33,12 @@ public class SecurityContextRepository implements ServerSecurityContextRepositor
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             final var authToken = authHeader.substring(7);
             final var auth = new UsernamePasswordAuthenticationToken(authToken, authToken);
-            return authenticationManager.authenticate(auth).map(SecurityContextImpl::new);
+            return authenticationManager
+                    .authenticate(auth)
+                    .map(SecurityContextImpl::new);
         }
 
         return Mono.empty();
     }
+
 }

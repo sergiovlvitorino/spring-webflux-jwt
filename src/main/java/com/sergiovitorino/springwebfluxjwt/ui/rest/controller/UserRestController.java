@@ -5,11 +5,13 @@ import com.sergiovitorino.springwebfluxjwt.application.command.FindByIdCommand;
 import com.sergiovitorino.springwebfluxjwt.application.command.UserCommandHandler;
 import com.sergiovitorino.springwebfluxjwt.application.command.user.SaveCommand;
 import com.sergiovitorino.springwebfluxjwt.domain.document.User;
+import com.sergiovitorino.springwebfluxjwt.infrastructure.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -22,6 +24,7 @@ import javax.validation.Valid;
 public class UserRestController {
 
     private final UserCommandHandler commandHandler;
+    private final CurrentUserService currentUserService;
 
     @PreAuthorize("hasAuthority('SAVE_USER')")
     @PostMapping
@@ -42,4 +45,9 @@ public class UserRestController {
         return commandHandler.execute(new FindByIdCommand(id));
     }
 
+    @PreAuthorize("hasAuthority('RETRIEVE_USER')")
+    @GetMapping("/currentUser")
+    public Mono<String> get(final ServerWebExchange exchange){
+        return currentUserService.getCurrentUser(exchange);
+    }
 }

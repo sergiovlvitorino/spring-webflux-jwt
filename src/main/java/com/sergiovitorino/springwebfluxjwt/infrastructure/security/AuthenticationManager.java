@@ -35,4 +35,6 @@ public class AuthenticationManager implements ReactiveAuthenticationManager {
             return Mono.empty();
         }
     }
+
 }
+

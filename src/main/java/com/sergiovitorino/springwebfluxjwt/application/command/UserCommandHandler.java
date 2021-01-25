@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class UserCommandHandler {
 
-    private final UserService userService;
+    private final UserService service;
 
     public Mono<User> execute(SaveCommand command) {
         final var user = new User();
@@ -22,14 +22,14 @@ public class UserCommandHandler {
         user.setPassword(command.getPassword());
         user.setRole(new Role());
         user.getRole().setId(command.getRoleId());
-        return userService.save(user);
+        return service.save(user);
     }
 
     public Flux<User> execute(FindAllCommand command) {
-        return userService.findAll();
+        return service.findAll();
     }
 
     public Mono<User> execute(FindByIdCommand command) {
-        return userService.find(command.getId());
+        return service.find(command.getId());
     }
 }
