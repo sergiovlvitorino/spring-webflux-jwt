@@ -1,0 +1,35 @@
+package com.sergiovitorino.springwebfluxjwt.application.command;
+
+import com.sergiovitorino.springwebfluxjwt.application.command.user.SaveCommand;
+import com.sergiovitorino.springwebfluxjwt.application.service.UserService;
+import com.sergiovitorino.springwebfluxjwt.domain.document.Role;
+import com.sergiovitorino.springwebfluxjwt.domain.document.User;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+@Component
+@RequiredArgsConstructor
+public class UserCommandHandler {
+
+    private final UserService userService;
+
+    public Mono<User> execute(SaveCommand command) {
+        final var user = new User();
+        user.setName(command.getName());
+        user.setEmail(command.getEmail());
+        user.setPassword(command.getPassword());
+        user.setRole(new Role());
+        user.getRole().setId(command.getRoleId());
+        return userService.save(user);
+    }
+
+    public Flux<User> execute(FindAllCommand command) {
+        return userService.findAll();
+    }
+
+    public Mono<User> execute(FindByIdCommand command) {
+        return userService.find(command.getId());
+    }
+}
