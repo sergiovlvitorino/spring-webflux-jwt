@@ -9,10 +9,7 @@ import com.sergiovitorino.springwebfluxjwt.domain.document.Role;
 import com.sergiovitorino.springwebfluxjwt.domain.document.User;
 import com.sergiovitorino.springwebfluxjwt.domain.repository.RoleRepository;
 import com.sergiovitorino.springwebfluxjwt.domain.repository.UserRepository;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,69 +25,57 @@ import java.util.ArrayList;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UserRestControllerTest {
 
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private WebTestClient webTestClient;
-    @LocalServerPort
-    private int port;
+    @Autowired private UserService userService;
+    @Autowired private WebTestClient webTestClient;
+    @Autowired private RoleRepository roleRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private ObjectMapper mapper;
+    @LocalServerPort private int port;
     private static User user;
     private static Role role;
     private static HttpHeaders httpHeaders;
-    @Autowired
-    private RoleRepository roleRepository;
-    @Autowired
-    private UserRepository userRepository;
-    private static int countTests = 0;
-    private static final int TOTAL_TESTS = 4;
-    @Autowired
-    private ObjectMapper mapper;
 
-    @BeforeEach
+    @BeforeAll
     public void setUp() {
-        countTests += 1;
-        if (user == null) {
-            role = new Role();
-            role.setName("ADMIN");
-            role.setAuthorities(new ArrayList<>());
-            role.getAuthorities().add(new Authority("RETRIEVE_USER"));
-            role.getAuthorities().add(new Authority("SAVE_USER"));
-            role.getAuthorities().add(new Authority("RETRIEVE_ROLE"));
-            role = roleRepository.save(role).block();
+        role = new Role();
+        role.setName("ADMIN");
+        role.setAuthorities(new ArrayList<>());
+        role.getAuthorities().add(new Authority("RETRIEVE_USER"));
+        role.getAuthorities().add(new Authority("SAVE_USER"));
+        role.getAuthorities().add(new Authority("RETRIEVE_ROLE"));
+        role = roleRepository.save(role).block();
 
-            final var userInner = new User();
-            userInner.setName("sergio vitorino");
-            userInner.setEmail("sergiovlvitorino@gmail.com");
-            userInner.setPassword("123456");
-            userInner.setRole(role);
+        final var userInner = new User();
+        userInner.setName("sergio vitorino");
+        userInner.setEmail("sergiovlvitorino@gmail.com");
+        userInner.setPassword("123456");
+        userInner.setRole(role);
 
-            user = userService.save(userInner).block();
+        user = userService.save(userInner).block();
 
-            final var credentials = "{\"username\":\"sergiovlvitorino@gmail.com\",\"password\":\"123456\"}";
-            final var body = BodyInserters.fromValue(credentials);
-            httpHeaders = WebClient
-                    .builder()
-                    .baseUrl("http://localhost:" + port)
-                    .build()
-                    .post()
-                    .uri("/login")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
-                    .retrieve()
-                    .toBodilessEntity()
-                    .block()
-                    .getHeaders();
-        }
+        final var credentials = "{\"username\":\"sergiovlvitorino@gmail.com\",\"password\":\"123456\"}";
+        final var body = BodyInserters.fromValue(credentials);
+        httpHeaders = WebClient
+                .builder()
+                .baseUrl("http://localhost:" + port)
+                .build()
+                .post()
+                .uri("/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .toBodilessEntity()
+                .block()
+                .getHeaders();
     }
 
-    @AfterEach
+    @AfterAll
     public void teardown() {
-        if (countTests == TOTAL_TESTS) {
-            roleRepository.deleteAll().block();
-            userRepository.deleteAll().block();
-        }
+        roleRepository.deleteAll().block();
+        userRepository.deleteAll().block();
     }
 
     @Test

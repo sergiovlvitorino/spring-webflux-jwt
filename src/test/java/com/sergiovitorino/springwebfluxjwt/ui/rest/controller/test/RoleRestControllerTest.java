@@ -6,10 +6,7 @@ import com.sergiovitorino.springwebfluxjwt.domain.document.Role;
 import com.sergiovitorino.springwebfluxjwt.domain.document.User;
 import com.sergiovitorino.springwebfluxjwt.domain.repository.RoleRepository;
 import com.sergiovitorino.springwebfluxjwt.domain.repository.UserRepository;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,65 +22,57 @@ import java.util.ArrayList;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class RoleRestControllerTest {
 
     @Autowired private UserService userService;
     @Autowired private WebTestClient webTestClient;
+    @Autowired private RoleRepository roleRepository;
+    @Autowired private UserRepository userRepository;
     @LocalServerPort private int port;
     private static User user;
     private static Role role;
     private static HttpHeaders httpHeaders;
-    @Autowired private RoleRepository roleRepository;
-    @Autowired private UserRepository userRepository;
-    private static int countTests = 0;
-    private static final int TOTAL_TESTS = 2;
 
-    @BeforeEach
-    public void setUp(){
-        countTests++;
-        if (user == null){
-            role = new Role();
-            role.setName("ADMIN");
-            role.setAuthorities(new ArrayList<>());
-            role.getAuthorities().add(new Authority("RETRIEVE_USER"));
-            role.getAuthorities().add(new Authority("SAVE_USER"));
-            role.getAuthorities().add(new Authority("RETRIEVE_ROLE"));
-            role = roleRepository.save(role).block();
+    @BeforeAll
+    public void setUp() {
+        role = new Role();
+        role.setName("ADMIN");
+        role.setAuthorities(new ArrayList<>());
+        role.getAuthorities().add(new Authority("RETRIEVE_USER"));
+        role.getAuthorities().add(new Authority("SAVE_USER"));
+        role.getAuthorities().add(new Authority("RETRIEVE_ROLE"));
+        role = roleRepository.save(role).block();
 
-            user = new User();
-            user.setName("sergio vitorino");
-            user.setEmail("sergiovlvitorino@gmail.com");
-            user.setPassword("123456");
-            user.setRole(role);
+        user = new User();
+        user.setName("sergio vitorino");
+        user.setEmail("sergiovlvitorino@gmail.com");
+        user.setPassword("123456");
+        user.setRole(role);
 
-            user = userService.save(user).block();
+        user = userService.save(user).block();
 
-            final var credentials = "{\"username\":\"sergiovlvitorino@gmail.com\",\"password\":\"123456\"}";
-            final var body = BodyInserters.fromValue(credentials);
-            httpHeaders = WebClient
-                    .builder()
-                    .baseUrl("http://localhost:" + port)
-                    .build()
-                    .post()
-                    .uri("/login")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
-                    .retrieve()
-                    .toBodilessEntity()
-                    .block()
-                    .getHeaders();
-        }
+        final var credentials = "{\"username\":\"sergiovlvitorino@gmail.com\",\"password\":\"123456\"}";
+        final var body = BodyInserters.fromValue(credentials);
+        httpHeaders = WebClient
+                .builder()
+                .baseUrl("http://localhost:" + port)
+                .build()
+                .post()
+                .uri("/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .toBodilessEntity()
+                .block()
+                .getHeaders();
     }
 
-    @AfterEach
-    public void teardown(){
-        if (TOTAL_TESTS == 2){
-            roleRepository.deleteAll().block();
-            userRepository.deleteAll().block();
-            user = null;
-        }
+    @AfterAll
+    public void teardown() {
+        roleRepository.deleteAll().block();
+        userRepository.deleteAll().block();
     }
-
     @Test
     void testIfGetIsOK() {
         webTestClient
