@@ -7,9 +7,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.io.Serializable;
+
 @Service
 @RequiredArgsConstructor
-public class CurrentUserService {
+public class CurrentUserService implements Serializable {
 
     private final SecurityContextRepository securityContextRepository;
 

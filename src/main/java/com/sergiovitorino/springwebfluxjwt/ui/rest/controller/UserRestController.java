@@ -16,12 +16,13 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
+import java.io.Serializable;
 
 @RestController
 @RequestMapping("/user")
-@RequiredArgsConstructor
 @Validated
-public class UserRestController {
+@RequiredArgsConstructor
+public class UserRestController implements Serializable {
 
     private final UserCommandHandler commandHandler;
     private final CurrentUserService currentUserService;
@@ -35,19 +36,19 @@ public class UserRestController {
 
     @PreAuthorize("hasAuthority('RETRIEVE_USER')")
     @GetMapping
-    public Flux<User> get(){
+    public Flux<User> findAll(){
         return commandHandler.execute(new FindAllCommand());
     }
 
     @PreAuthorize("hasAuthority('RETRIEVE_USER')")
     @GetMapping("/{id}")
-    public Mono<User> get(@PathVariable("id") final String id){
+    public Mono<User> findById(@PathVariable("id") final String id){
         return commandHandler.execute(new FindByIdCommand(id));
     }
 
     @PreAuthorize("hasAuthority('RETRIEVE_USER')")
     @GetMapping("/currentUser")
-    public Mono<String> get(final ServerWebExchange exchange){
+    public Mono<String> findCurrentUser(final ServerWebExchange exchange){
         return currentUserService.getCurrentUser(exchange);
     }
 }

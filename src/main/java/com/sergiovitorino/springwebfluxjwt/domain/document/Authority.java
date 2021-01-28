@@ -1,13 +1,17 @@
 package com.sergiovitorino.springwebfluxjwt.domain.document;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
+import java.io.Serializable;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Authority {
+@ToString
+@EqualsAndHashCode
+public class Authority implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private String name;
 

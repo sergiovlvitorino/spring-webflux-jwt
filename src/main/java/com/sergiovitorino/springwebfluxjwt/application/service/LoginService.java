@@ -3,18 +3,23 @@ package com.sergiovitorino.springwebfluxjwt.application.service;
 import com.sergiovitorino.springwebfluxjwt.infrastructure.security.AccountCredentials;
 import com.sergiovitorino.springwebfluxjwt.infrastructure.security.JWTService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-@Service
-@RequiredArgsConstructor
-public class LoginService {
+import java.io.Serial;
+import java.io.Serializable;
 
-    private final UserService userService;
-    private final JWTService jwtService;
-    private final PasswordEncoder passwordEncoder;
+@Service
+public class LoginService implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    @Autowired private UserService userService;
+    @Autowired private JWTService jwtService;
+    @Autowired private PasswordEncoder passwordEncoder;
 
     public Mono<String> authenticate(final AccountCredentials accountCredentials) {
         return userService

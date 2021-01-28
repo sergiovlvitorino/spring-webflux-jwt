@@ -8,9 +8,11 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import java.io.Serializable;
+
 @Component
 @RequiredArgsConstructor
-public class AuthenticationManager implements ReactiveAuthenticationManager {
+public class AuthenticationManager implements ReactiveAuthenticationManager, Serializable {
 
     private final JWTService jwtService;
 

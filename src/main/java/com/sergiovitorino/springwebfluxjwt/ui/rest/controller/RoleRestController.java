@@ -13,10 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.Serializable;
+
 @RestController
 @RequestMapping("/role")
 @RequiredArgsConstructor
-public class RoleRestController {
+public class RoleRestController implements Serializable {
 
     private final RoleCommandHandler commandHandler;
 

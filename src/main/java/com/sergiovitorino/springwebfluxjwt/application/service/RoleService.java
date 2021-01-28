@@ -3,24 +3,29 @@ package com.sergiovitorino.springwebfluxjwt.application.service;
 import com.sergiovitorino.springwebfluxjwt.domain.document.Role;
 import com.sergiovitorino.springwebfluxjwt.domain.repository.RoleRepository;
 import com.sergiovitorino.springwebfluxjwt.domain.repository.UserRepository;
-import com.sergiovitorino.springwebfluxjwt.infrastructure.security.SecurityContextRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.Serializable;
+
 @Service
 @RequiredArgsConstructor
-public class RoleService {
+public class RoleService implements Serializable {
 
+    private static final long serialVersionUID = 1L;
     private final RoleRepository repository;
     private final UserRepository userRepository;
-    private final SecurityContextRepository securityContextRepository;
 
+    @CacheEvict(cacheNames = "role", allEntries = true)
     public Mono<Role> save(final Role role) {
         return repository.save(role);
     }
 
+    @CacheEvict(cacheNames = "{user,role}", allEntries = true)
     public Mono<Role> update(final Role role) {
         return repository.existsById(role.getId())
                 .flatMap(result -> {
@@ -38,10 +43,12 @@ public class RoleService {
                 });
     }
 
+    @Cacheable(cacheNames = "role", key = "{#root.method.name}")
     public Flux<Role> findAll() {
         return repository.findAll();
     }
 
+    @Cacheable(cacheNames = "role", key = "{#root.method.name,#id}")
     public Mono<Role> find(final String id) {
         return repository.findById(id);
     }

@@ -1,9 +1,7 @@
 package com.sergiovitorino.springwebfluxjwt.domain.document;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.Getter;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
@@ -16,7 +14,13 @@ import java.util.Collection;
 
 @Document
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@ToString
+@EqualsAndHashCode
 public class User implements UserDetails, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     @Id
     private String id;
@@ -34,10 +38,10 @@ public class User implements UserDetails, Serializable {
         return AuthorityUtils
                 .createAuthorityList(
                         getRole()
-                        .getAuthorities()
-                        .stream()
-                        .map(Authority::getName)
-                        .toArray(String[]::new)
+                                .getAuthorities()
+                                .stream()
+                                .map(Authority::getName)
+                                .toArray(String[]::new)
                 );
     }
 
@@ -71,7 +75,7 @@ public class User implements UserDetails, Serializable {
         return this.enabled;
     }
 
-    public void encodePassword(final PasswordEncoder passwordEncoder){
+    public void encodePassword(final PasswordEncoder passwordEncoder) {
         this.password = passwordEncoder.encode(this.password);
     }
 }

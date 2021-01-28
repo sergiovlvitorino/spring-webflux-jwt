@@ -7,12 +7,13 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.io.Serializable;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Date;
 
 @Service
-public class JWTService {
+public class JWTService implements Serializable {
 
     private String secret = "B7E1919472B4E2F6F7FEC38298B47AAD21B957FAC1DB2A3645E4B62BDEBED68F47C12A43BDFB17EA5FDFEE99CC84A49615BB6A55E5CC476E3C5C";
     private String expirationTime = "30000000";

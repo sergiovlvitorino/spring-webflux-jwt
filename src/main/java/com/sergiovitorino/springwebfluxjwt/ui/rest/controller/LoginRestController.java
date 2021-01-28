@@ -12,12 +12,13 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
+import java.io.Serializable;
 
 @RestController
 @RequestMapping("/login")
-@RequiredArgsConstructor
 @Validated
-public class LoginRestController {
+@RequiredArgsConstructor
+public class LoginRestController implements Serializable {
 
     private final static ResponseEntity<Object> UNAUTHORIZED = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     private final LoginService service;
