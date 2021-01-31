@@ -4,6 +4,7 @@ import com.sergiovitorino.springwebfluxjwt.application.command.FindAllCommand;
 import com.sergiovitorino.springwebfluxjwt.application.command.FindByIdCommand;
 import com.sergiovitorino.springwebfluxjwt.application.command.UserCommandHandler;
 import com.sergiovitorino.springwebfluxjwt.application.command.user.SaveCommand;
+import com.sergiovitorino.springwebfluxjwt.application.command.user.UpdateCommand;
 import com.sergiovitorino.springwebfluxjwt.domain.document.User;
 import com.sergiovitorino.springwebfluxjwt.infrastructure.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,12 @@ public class UserRestController implements Serializable {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<User> post(@Valid @RequestBody final SaveCommand command) {
+        return commandHandler.execute(command);
+    }
+
+    @PreAuthorize("hasAuthority('SAVE_USER')")
+    @PutMapping
+    public Mono<User> put(@Valid @RequestBody final UpdateCommand command) {
         return commandHandler.execute(command);
     }
 

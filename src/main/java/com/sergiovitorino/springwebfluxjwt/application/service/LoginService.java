@@ -13,13 +13,13 @@ import java.io.Serial;
 import java.io.Serializable;
 
 @Service
+@RequiredArgsConstructor
 public class LoginService implements Serializable {
 
     private static final long serialVersionUID = 1L;
-
-    @Autowired private UserService userService;
-    @Autowired private JWTService jwtService;
-    @Autowired private PasswordEncoder passwordEncoder;
+    private final UserService userService;
+    private final JWTService jwtService;
+    private final PasswordEncoder passwordEncoder;
 
     public Mono<String> authenticate(final AccountCredentials accountCredentials) {
         return userService

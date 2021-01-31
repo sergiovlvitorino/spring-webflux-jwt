@@ -78,4 +78,5 @@ public class User implements UserDetails, Serializable {
     public void encodePassword(final PasswordEncoder passwordEncoder) {
         this.password = passwordEncoder.encode(this.password);
     }
+
 }

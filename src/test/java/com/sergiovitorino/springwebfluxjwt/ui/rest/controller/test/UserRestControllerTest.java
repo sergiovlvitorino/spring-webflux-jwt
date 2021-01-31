@@ -123,7 +123,7 @@ class UserRestControllerTest {
 
     @Test
     void testIfGetByIdIsOK() {
-        final var userResult = webTestClient
+        webTestClient
                 .get()
                 .uri("/user/{id}", user.getId())
                 .header(HttpHeaders.AUTHORIZATION, httpHeaders.getFirst(HttpHeaders.AUTHORIZATION))
@@ -131,15 +131,14 @@ class UserRestControllerTest {
                 .exchange()
                 .expectStatus()
                 .isOk()
-                .expectBody(User.class)
-                .returnResult()
-                .getResponseBody();
-        Assertions.assertEquals(user.getId(), userResult.getId());
+                .expectBody()
+                .jsonPath("$.id")
+                .isEqualTo(user.getId());
     }
 
     @Test
     void testIfGetCurrentUser() {
-        final var usernameResult = webTestClient
+        webTestClient
                 .get()
                 .uri("/user/currentUser")
                 .header(HttpHeaders.AUTHORIZATION, httpHeaders.getFirst(HttpHeaders.AUTHORIZATION))
@@ -148,9 +147,7 @@ class UserRestControllerTest {
                 .expectStatus()
                 .isOk()
                 .expectBody(String.class)
-                .returnResult()
-                .getResponseBody();
-        Assertions.assertEquals(user.getUsername(), usernameResult);
+                .isEqualTo(user.getUsername());
     }
 
 

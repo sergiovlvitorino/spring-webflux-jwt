@@ -34,8 +34,8 @@ public class UserService implements ReactiveUserDetailsService {
         return repository.findAll();
     }
 
-    @CacheEvict(cacheNames = "user", allEntries = true)
-    public Mono<User> save(@NotNull final User user) {
+    @CacheEvict(cacheNames = "user")
+    public Mono<User> save(final User user) {
         user.setEnabled(true);
         user.encodePassword(passwordEncoder);
         return repository.existsByEmail(user.getEmail()).flatMap(result -> {

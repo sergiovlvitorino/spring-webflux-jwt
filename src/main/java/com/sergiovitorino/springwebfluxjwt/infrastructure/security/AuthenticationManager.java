@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.io.Serializable;
+import java.time.Instant;
+import java.util.Date;
 
 @Component
 @RequiredArgsConstructor
@@ -17,25 +19,18 @@ public class AuthenticationManager implements ReactiveAuthenticationManager, Ser
     private final JWTService jwtService;
 
     @Override
-    public Mono<Authentication> authenticate(Authentication authentication) {
+    public Mono<Authentication> authenticate(final Authentication authentication) {
         final var authToken = authentication.getCredentials().toString();
-        String username;
-
-        try {
-            username = jwtService.extractUsername(authToken);
-        } catch (Exception e) {
-            username = null;
-            System.out.println(e);
-        }
-
-        if (username != null && jwtService.validateToken(authToken)) {
+        if (authToken != null) {
             final var claims = jwtService.getClaimsFromToken(authToken);
-            final var authoritiesList = AuthorityUtils.commaSeparatedStringToAuthorityList(claims.get("authorities", String.class));
-            final var authenticationToken = new UsernamePasswordAuthenticationToken(username, null, authoritiesList);
-            return Mono.just(authenticationToken);
-        } else {
-            return Mono.empty();
+            if (claims.getExpiration().after(Date.from(Instant.now()))) {
+                final var username = claims.getSubject();
+                final var authoritiesList = AuthorityUtils.commaSeparatedStringToAuthorityList(claims.get("authorities", String.class));
+                final var authenticationToken = new UsernamePasswordAuthenticationToken(username, null, authoritiesList);
+                return Mono.just(authenticationToken);
+            }
         }
+        return Mono.empty();
     }
 
 }

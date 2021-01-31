@@ -6,7 +6,10 @@ import com.sergiovitorino.springwebfluxjwt.domain.document.Role;
 import com.sergiovitorino.springwebfluxjwt.domain.document.User;
 import com.sergiovitorino.springwebfluxjwt.domain.repository.RoleRepository;
 import com.sergiovitorino.springwebfluxjwt.domain.repository.UserRepository;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,6 +23,7 @@ import java.util.ArrayList;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class LoginRestControllerTest {
 
     @Autowired private WebTestClient webTestClient;
@@ -27,29 +31,35 @@ public class LoginRestControllerTest {
     @Autowired private UserRepository userRepository;
     @Autowired private RoleRepository roleRepository;
 
-    @Test
-    void testIfLoginIsOk(){
-
-        var role = new Role();
+    @BeforeAll
+    public void setUp() {
+        final var role = new Role();
         role.setName("ADMIN");
         role.setAuthorities(new ArrayList<>());
         role.getAuthorities().add(new Authority("RETRIEVE_USER"));
         role.getAuthorities().add(new Authority("SAVE_USER"));
         role.getAuthorities().add(new Authority("RETRIEVE_ROLE"));
 
-        role = roleRepository.save(role).block();
-
-        var user = new User();
+        final var user = new User();
         user.setName("login login");
         user.setEmail("login@gmail.com");
         user.setPassword("123456");
-        user.setRole(role);
+        user.setRole(roleRepository.save(role).block());
 
-        user = userService.save(user).block();
+        userService.save(user).block();
+    }
 
+    @AfterAll
+    public void teardown() {
+        userRepository.deleteAll().block();
+        roleRepository.deleteAll().block();
+    }
+
+    @Test
+    void testIfLoginIsOk() {
         final var credentials = "{\"username\":\"login@gmail.com\",\"password\":\"123456\"}";
         final var body = BodyInserters.fromValue(credentials);
-        final var responseEntity = webTestClient
+        webTestClient
                 .post()
                 .uri("/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -59,13 +69,10 @@ public class LoginRestControllerTest {
                 .isOk()
                 .expectHeader()
                 .exists(HttpHeaders.AUTHORIZATION);
-
-        userRepository.delete(user).block();
-        roleRepository.delete(role).block();
     }
 
     @Test
-    void testIfLoginReturnsUnauthorizedWhenUserNotExists(){
+    void testIfLoginReturnsUnauthorizedWhenUserNotExists() {
         final var credentials = "{\"username\":\"unauthorized@gmail.com\",\"password\":\"123456\"}";
         final var body = BodyInserters.fromValue(credentials);
         webTestClient

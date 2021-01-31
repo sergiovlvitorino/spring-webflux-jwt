@@ -8,6 +8,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.io.Serializable;
+import java.time.Instant;
+import java.time.Period;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Date;
@@ -16,7 +18,6 @@ import java.util.Date;
 public class JWTService implements Serializable {
 
     private String secret = "B7E1919472B4E2F6F7FEC38298B47AAD21B957FAC1DB2A3645E4B62BDEBED68F47C12A43BDFB17EA5FDFEE99CC84A49615BB6A55E5CC476E3C5C";
-    private String expirationTime = "30000000";
     public static final String TOKEN_PREFIX = "Bearer";
 
     public String extractUsername(String authToken) {
@@ -35,10 +36,14 @@ public class JWTService implements Serializable {
                 .getBody();
     }
 
+    public boolean isValid(Claims claims){
+        return claims.getExpiration().after(Date.from(Instant.now()));
+    }
+
     public boolean validateToken(final String authToken) {
-        return getClaimsFromToken(authToken)
+        return authToken != null && getClaimsFromToken(authToken)
                 .getExpiration()
-                .after(new Date());
+                .after(Date.from(Instant.now()));
     }
 
 
@@ -46,31 +51,21 @@ public class JWTService implements Serializable {
         final var claims = Jwts.claims();
         claims.put("authorities", extractAuthorities(user.getAuthorities()));
         claims.put("Username", user.getUsername());
-
-        final long expirationSeconds = Long.parseLong(expirationTime);
-        final Date creationDate = new Date();
-        final Date expirationDate = new Date(creationDate.getTime() + expirationSeconds * 1000);
-
+        final var instantNow = Instant.now();
         return TOKEN_PREFIX + " " + Jwts.builder()
                 .setClaims(claims)
                 .setSubject(user.getUsername())
-                .setIssuedAt(creationDate)
-                .setExpiration(expirationDate)
+                .setIssuedAt(Date.from(instantNow))
+                .setExpiration(Date.from(instantNow.plus(Period.ofDays(10))))
                 .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
                 .compact();
     }
 
-    private String extractAuthorities(Collection<? extends GrantedAuthority> authorities) {
-        final var stringBuilder = new StringBuilder();
-        authorities.stream().forEach(authority -> stringBuilder.append(authority + ","));
-        return removeComma(stringBuilder.toString());
+    private String extractAuthorities(final Collection<? extends GrantedAuthority> authorities) {
+        final var authoritiesString = authorities.toString();
+        return authoritiesString
+                .substring(1, authoritiesString.length() - 1)
+                .replaceAll(" ", "");
     }
 
-    public String removeComma(final String text) {
-        if (text.isEmpty()) {
-            return text;
-        } else {
-            return text.substring(0, text.length() - 1);
-        }
-    }
 }

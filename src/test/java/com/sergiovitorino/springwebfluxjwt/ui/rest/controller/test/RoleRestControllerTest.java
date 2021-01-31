@@ -89,7 +89,7 @@ class RoleRestControllerTest {
 
     @Test
     void testIfGetByIdIsOK() {
-        var roleResult = webTestClient
+        webTestClient
                 .get()
                 .uri("/role/{id}", role.getId())
                 .header(HttpHeaders.AUTHORIZATION, httpHeaders.getFirst(HttpHeaders.AUTHORIZATION))
@@ -97,9 +97,8 @@ class RoleRestControllerTest {
                 .exchange()
                 .expectStatus()
                 .isOk()
-                .expectBody(Role.class)
-                .returnResult()
-                .getResponseBody();
-        Assertions.assertEquals(role.getId(), roleResult.getId());
+                .expectBody()
+                .jsonPath("$.id")
+                .isEqualTo(role.getId());
     }
 }

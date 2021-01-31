@@ -30,8 +30,6 @@ public class RoleRestController implements Serializable {
 
     @PreAuthorize("hasAuthority('RETRIEVE_ROLE')")
     @GetMapping("/{id}")
-    public Mono<Role> get(@PathVariable("id") final String id){
-        return commandHandler.execute(new FindByIdCommand(id));
-    }
+    public Mono<Role> get(@PathVariable("id") final String id){ return commandHandler.execute(new FindByIdCommand(id)); }
 
 }
