@@ -85,4 +85,47 @@ public class LoginRestControllerTest {
                 .isUnauthorized();
     }
 
+    @Test
+    void testIfLoginReturnsBadRequestWhenUsernameIsEmpty() {
+        final var credentials = "{\"username\":\"\",\"password\":\"123456\"}";
+        final var body = BodyInserters.fromValue(credentials);
+        webTestClient
+                .post()
+                .uri("/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .exchange()
+                .expectStatus()
+                .isBadRequest();
+    }
+
+    @Test
+    void testIfLoginReturnsBadRequestWhenUsernameIsNotAnEmail() {
+        final var credentials = "{\"username\":\"johndoegmail.com\",\"password\":\"123456\"}";
+        final var body = BodyInserters.fromValue(credentials);
+        webTestClient
+                .post()
+                .uri("/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .exchange()
+                .expectStatus()
+                .isBadRequest();
+    }
+
+
+    @Test
+    void testIfLoginReturnsBadRequestWhenPasswordIsEmpty() {
+        final var credentials = "{\"username\":\"johndoe@gmail.com\",\"password\":\"\"}";
+        final var body = BodyInserters.fromValue(credentials);
+        webTestClient
+                .post()
+                .uri("/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .exchange()
+                .expectStatus()
+                .isBadRequest();
+    }
+
 }
