@@ -1,7 +1,7 @@
 package com.sergiovitorino.springwebfluxjwt.infrastructure.security;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -18,20 +18,25 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 
+@Configuration
 @EnableWebFluxSecurity
-@EnableReactiveMethodSecurity
-@RequiredArgsConstructor
+@EnableReactiveMethodSecurity(useAuthorizationManager = true)
 public class SecurityConfig implements Serializable {
 
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
     public static final String AUTHORIZATION = "Authorization";
 
+    public SecurityConfig(AuthenticationManager authenticationManager, SecurityContextRepository securityContextRepository) {
+        this.authenticationManager = authenticationManager;
+        this.securityContextRepository = securityContextRepository;
+    }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         final var configuration = new CorsConfiguration();
         configuration.setAllowCredentials(true);
-        configuration.setAllowedOrigins(Collections.singletonList("*"));
+        configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
         configuration.setAllowedMethods(Arrays.asList("POST", "GET", "PUT", "OPTIONS", "DELETE", "PATCH"));
         configuration.setExposedHeaders(Collections.singletonList(AUTHORIZATION));
         configuration.addExposedHeader(AUTHORIZATION);
@@ -51,30 +56,22 @@ public class SecurityConfig implements Serializable {
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity httpSecurity) {
         return httpSecurity
-                .exceptionHandling()
-                .authenticationEntryPoint(
-                        (swe, e) ->
-                                Mono.fromRunnable(
-                                        () -> swe.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED)
-                                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((swe, e) ->
+                                Mono.fromRunnable(() -> swe.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED)))
+                        .accessDeniedHandler((swe, e) ->
+                                Mono.fromRunnable(() -> swe.getResponse().setStatusCode(HttpStatus.FORBIDDEN)))
                 )
-                .accessDeniedHandler(
-                        (swe, e) ->
-                                Mono.fromRunnable(
-                                        () -> swe.getResponse().setStatusCode(HttpStatus.FORBIDDEN)
-                                )
-                )
-                .and()
-                .csrf().disable()
-                .formLogin().disable()
-                .httpBasic().disable()
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
+                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .authenticationManager(authenticationManager)
                 .securityContextRepository(securityContextRepository)
-                .authorizeExchange()
-                .pathMatchers("/", "/login", "/favicon.ico").permitAll()
-                .pathMatchers("/actuator").permitAll()
-                .anyExchange().authenticated()
-                .and()
+                .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers("/", "/login", "/favicon.ico").permitAll()
+                        .pathMatchers("/actuator").permitAll()
+                        .anyExchange().authenticated()
+                )
                 .build();
     }
 

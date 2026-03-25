@@ -3,6 +3,7 @@ package com.sergiovitorino.springwebfluxjwt.ui.rest.controller.test;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sergiovitorino.springwebfluxjwt.application.command.user.SaveCommand;
+import com.sergiovitorino.springwebfluxjwt.application.command.user.UpdateCommand;
 import com.sergiovitorino.springwebfluxjwt.application.service.UserService;
 import com.sergiovitorino.springwebfluxjwt.domain.document.Authority;
 import com.sergiovitorino.springwebfluxjwt.domain.document.Role;
@@ -13,10 +14,9 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -27,7 +27,6 @@ import java.util.ArrayList;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@TestPropertySource(properties = "spring.mongodb.embedded.version=3.4.5")
 class UserRestControllerTest {
 
     @Autowired private UserService userService;
@@ -82,11 +81,7 @@ class UserRestControllerTest {
 
     @Test
     void testIfPostIsOK() throws JsonProcessingException {
-        final var command = new SaveCommand();
-        command.setName("Lorem Ipsum");
-        command.setEmail("lorem@ipsum.com");
-        command.setPassword("123456");
-        command.setRoleId(role.getId());
+        final var command = new SaveCommand("Lorem Ipsum", "lorem@ipsum.com", "123456", role.getId());
         final var body = BodyInserters.fromValue(mapper.writeValueAsString(command));
 
         final var userResult = webTestClient
@@ -103,7 +98,7 @@ class UserRestControllerTest {
                 .returnResult()
                 .getResponseBody();
 
-        Assertions.assertEquals(command.getEmail(), userResult.getEmail());
+        Assertions.assertEquals(command.email(), userResult.getEmail());
         userRepository.delete(userResult).block();
 
     }
@@ -152,5 +147,68 @@ class UserRestControllerTest {
                 .isEqualTo(user.getUsername());
     }
 
+    @Test
+    void testIfPutIsOK() throws JsonProcessingException {
+        final var command = new UpdateCommand(user.getId(), "Updated Name", user.getEmail(), "123456", role.getId());
+        final var body = BodyInserters.fromValue(mapper.writeValueAsString(command));
 
+        webTestClient
+                .put()
+                .uri("/user")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .header(HttpHeaders.AUTHORIZATION, httpHeaders.getFirst(HttpHeaders.AUTHORIZATION))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody()
+                .jsonPath("$.name")
+                .isEqualTo("Updated Name");
+    }
+
+    @Test
+    void testIfPutReturnsErrorWhenUserNotFound() throws JsonProcessingException {
+        final var command = new UpdateCommand("nonexistent-id", "Name", user.getEmail(), "123456", role.getId());
+        final var body = BodyInserters.fromValue(mapper.writeValueAsString(command));
+
+        webTestClient
+                .put()
+                .uri("/user")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .header(HttpHeaders.AUTHORIZATION, httpHeaders.getFirst(HttpHeaders.AUTHORIZATION))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus()
+                .isBadRequest();
+    }
+
+    @Test
+    void testIfPostReturnsBadRequestWhenEmailAlreadyExists() throws JsonProcessingException {
+        final var command = new SaveCommand("Duplicate", user.getEmail(), "123456", role.getId());
+        final var body = BodyInserters.fromValue(mapper.writeValueAsString(command));
+
+        webTestClient
+                .post()
+                .uri("/user")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .header(HttpHeaders.AUTHORIZATION, httpHeaders.getFirst(HttpHeaders.AUTHORIZATION))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus()
+                .isBadRequest();
+    }
+
+    @Test
+    void testIfRequestWithoutAuthReturnsUnauthorized() {
+        webTestClient
+                .get()
+                .uri("/user")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus()
+                .isUnauthorized();
+    }
 }
