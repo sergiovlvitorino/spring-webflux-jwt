@@ -7,7 +7,6 @@ import com.sergiovitorino.springwebfluxjwt.application.command.user.SaveCommand;
 import com.sergiovitorino.springwebfluxjwt.application.command.user.UpdateCommand;
 import com.sergiovitorino.springwebfluxjwt.domain.document.User;
 import com.sergiovitorino.springwebfluxjwt.infrastructure.security.CurrentUserService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -16,17 +15,21 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.io.Serializable;
 
 @RestController
 @RequestMapping("/user")
 @Validated
-@RequiredArgsConstructor
 public class UserRestController implements Serializable {
 
     private final UserCommandHandler commandHandler;
     private final CurrentUserService currentUserService;
+
+    public UserRestController(UserCommandHandler commandHandler, CurrentUserService currentUserService) {
+        this.commandHandler = commandHandler;
+        this.currentUserService = currentUserService;
+    }
 
     @PreAuthorize("hasAuthority('SAVE_USER')")
     @PostMapping

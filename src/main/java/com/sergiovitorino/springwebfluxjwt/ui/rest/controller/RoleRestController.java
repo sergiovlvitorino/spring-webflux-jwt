@@ -4,7 +4,6 @@ import com.sergiovitorino.springwebfluxjwt.application.command.FindAllCommand;
 import com.sergiovitorino.springwebfluxjwt.application.command.FindByIdCommand;
 import com.sergiovitorino.springwebfluxjwt.application.command.RoleCommandHandler;
 import com.sergiovitorino.springwebfluxjwt.domain.document.Role;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,10 +16,13 @@ import java.io.Serializable;
 
 @RestController
 @RequestMapping("/role")
-@RequiredArgsConstructor
 public class RoleRestController implements Serializable {
 
     private final RoleCommandHandler commandHandler;
+
+    public RoleRestController(RoleCommandHandler commandHandler) {
+        this.commandHandler = commandHandler;
+    }
 
     @PreAuthorize("hasAuthority('RETRIEVE_ROLE')")
     @GetMapping

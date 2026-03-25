@@ -1,22 +1,13 @@
 package com.sergiovitorino.springwebfluxjwt.application.command.user;
 
-import lombok.Data;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
 
-import javax.validation.constraints.Email;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.Size;
-
-@Data
-public class SaveCommand {
-
-    @NotEmpty
-    private String name;
-    @Email
-    private String email;
-    @NotEmpty
-    @Size(min = 6, max = 16)
-    private String password;
-    @NotEmpty
-    private String roleId;
-
+public record SaveCommand(
+        @NotEmpty String name,
+        @Email String email,
+        @NotEmpty @Size(min = 6, max = 16) String password,
+        @NotEmpty String roleId
+) {
 }
