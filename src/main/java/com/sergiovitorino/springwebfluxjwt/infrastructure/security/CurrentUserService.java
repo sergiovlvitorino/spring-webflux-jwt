@@ -1,6 +1,5 @@
 package com.sergiovitorino.springwebfluxjwt.infrastructure.security;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Service;
@@ -10,10 +9,13 @@ import reactor.core.publisher.Mono;
 import java.io.Serializable;
 
 @Service
-@RequiredArgsConstructor
 public class CurrentUserService implements Serializable {
 
     private final SecurityContextRepository securityContextRepository;
+
+    public CurrentUserService(SecurityContextRepository securityContextRepository) {
+        this.securityContextRepository = securityContextRepository;
+    }
 
     public Mono<String> getCurrentUser(final ServerWebExchange exchange){
         return securityContextRepository
