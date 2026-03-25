@@ -2,8 +2,6 @@ package com.sergiovitorino.springwebfluxjwt.application.service;
 
 import com.sergiovitorino.springwebfluxjwt.domain.document.User;
 import com.sergiovitorino.springwebfluxjwt.domain.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
@@ -13,15 +11,19 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import javax.validation.constraints.NotNull;
 
 @Service
-@RequiredArgsConstructor
 public class UserService implements ReactiveUserDetailsService {
 
     private final UserRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final RoleService roleService;
+
+    public UserService(UserRepository repository, PasswordEncoder passwordEncoder, RoleService roleService) {
+        this.repository = repository;
+        this.passwordEncoder = passwordEncoder;
+        this.roleService = roleService;
+    }
 
     @Cacheable(cacheNames = "user", key = "{#root.method.name,#email}")
     @Override

@@ -1,6 +1,5 @@
 package com.sergiovitorino.springwebfluxjwt.infrastructure.security;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
@@ -13,10 +12,13 @@ import reactor.core.publisher.Mono;
 import java.io.Serializable;
 
 @Component
-@RequiredArgsConstructor
 public class SecurityContextRepository implements ServerSecurityContextRepository, Serializable {
 
     private final AuthenticationManager authenticationManager;
+
+    public SecurityContextRepository(AuthenticationManager authenticationManager) {
+        this.authenticationManager = authenticationManager;
+    }
 
     @Override
     public Mono<Void> save(ServerWebExchange serverWebExchange, SecurityContext securityContext) {

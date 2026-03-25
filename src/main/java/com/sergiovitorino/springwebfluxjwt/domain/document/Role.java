@@ -1,19 +1,14 @@
 package com.sergiovitorino.springwebfluxjwt.domain.document;
 
-import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Document
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-@ToString
-@EqualsAndHashCode
 public class Role implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -21,12 +16,58 @@ public class Role implements Serializable {
     @Id
     private String id;
     private String name;
-    @Getter(AccessLevel.NONE)
     private List<Authority> authorities;
+
+    public Role() {
+    }
+
+    public Role(String id, String name, List<Authority> authorities) {
+        this.id = id;
+        this.name = name;
+        this.authorities = authorities;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 
     public List<Authority> getAuthorities() {
         if (authorities == null)
             authorities = new ArrayList<>();
         return authorities;
+    }
+
+    public void setAuthorities(List<Authority> authorities) {
+        this.authorities = authorities;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Role role = (Role) o;
+        return Objects.equals(id, role.id) && Objects.equals(name, role.name) && Objects.equals(authorities, role.authorities);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, authorities);
+    }
+
+    @Override
+    public String toString() {
+        return "Role(id=" + id + ", name=" + name + ", authorities=" + authorities + ")";
     }
 }
