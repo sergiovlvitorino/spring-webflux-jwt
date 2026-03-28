@@ -4,7 +4,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.io.Serializable;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -44,9 +44,7 @@ public class Role implements Serializable {
     }
 
     public List<Authority> getAuthorities() {
-        if (authorities == null)
-            authorities = new ArrayList<>();
-        return authorities;
+        return authorities != null ? authorities : Collections.emptyList();
     }
 
     public void setAuthorities(List<Authority> authorities) {

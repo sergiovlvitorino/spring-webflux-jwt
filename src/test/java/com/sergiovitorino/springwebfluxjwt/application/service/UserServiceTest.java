@@ -79,7 +79,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testSaveWithInvalidRoleReturnsEmpty() {
+    void testSaveWithInvalidRoleThrows() {
         var user = new User();
         user.setName("Bad Role");
         user.setEmail("badrole@test.com");
@@ -88,13 +88,7 @@ class UserServiceTest {
         fakeRole.setId("nonexistent-role-id");
         user.setRole(fakeRole);
 
-        // roleService.find() returns Mono.empty() for nonexistent role,
-        // so doOnNext is never triggered and then(save) never executes
-        var result = userService.save(user).block();
-        // save may or may not execute depending on reactive chain behavior
-        if (result != null) {
-            userRepository.delete(result).block();
-        }
+        assertThrows(IllegalArgumentException.class, () -> userService.save(user).block());
     }
 
     @Test
@@ -188,8 +182,7 @@ class UserServiceTest {
         fakeRole.setId("nonexistent-role-id");
         saved.setRole(fakeRole);
 
-        var result = userService.update(saved).block();
-        assertNull(result);
+        assertThrows(IllegalArgumentException.class, () -> userService.update(saved).block());
 
         userRepository.deleteAll().block();
     }

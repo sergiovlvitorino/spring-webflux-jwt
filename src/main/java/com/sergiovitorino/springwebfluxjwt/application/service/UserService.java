@@ -2,18 +2,21 @@ package com.sergiovitorino.springwebfluxjwt.application.service;
 
 import com.sergiovitorino.springwebfluxjwt.domain.document.User;
 import com.sergiovitorino.springwebfluxjwt.domain.repository.UserRepository;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+
+import java.time.Duration;
 
 
 @Service
 public class UserService implements ReactiveUserDetailsService {
+
+    private static final Duration CACHE_TTL = Duration.ofMinutes(10);
 
     private final UserRepository repository;
     private final PasswordEncoder passwordEncoder;
@@ -25,52 +28,50 @@ public class UserService implements ReactiveUserDetailsService {
         this.roleService = roleService;
     }
 
-    @Cacheable(cacheNames = "user", key = "{#root.method.name,#email}")
     @Override
     public Mono<UserDetails> findByUsername(final String email) {
-        return repository.findByEmail(email).cast(UserDetails.class);
+        return repository.findByEmail(email).cast(UserDetails.class).cache(CACHE_TTL);
     }
 
-    @Cacheable(cacheNames = "user", key = "#root.method.name")
     public Flux<User> findAll() {
         return repository.findAll();
     }
 
-    @CacheEvict(cacheNames = "user")
     public Mono<User> save(final User user) {
         user.setEnabled(true);
-        user.encodePassword(passwordEncoder);
-        return repository.existsByEmail(user.getEmail()).flatMap(result -> {
-            if (result)
-                throw new IllegalArgumentException("Email already");
-            return roleService
-                    .find(user.getRole().getId())
-                    .doOnNext(role -> {
-                        if (role == null)
-                            throw new IllegalArgumentException("Role not found");
-                        user.setRole(role);
-                    }).then(repository.save(user));
-        });
+        return Mono.fromCallable(() -> {
+                    user.encodePassword(passwordEncoder);
+                    return user;
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMap(u -> repository.existsByEmail(u.getEmail())
+                        .flatMap(exists -> {
+                            if (exists)
+                                return Mono.error(new IllegalArgumentException("Email already"));
+                            return roleService.find(u.getRole().getId())
+                                    .switchIfEmpty(Mono.error(new IllegalArgumentException("Role not found")))
+                                    .flatMap(role -> {
+                                        u.setRole(role);
+                                        return repository.save(u);
+                                    });
+                        })
+                );
     }
 
-    @CacheEvict(cacheNames = "user", allEntries = true)
     public Mono<User> update(final User user) {
-        return repository
-                .existsById(user.getId())
-                .flatMap(result -> {
-                    if (!result)
-                        throw new IllegalArgumentException("User not found");
+        return repository.existsById(user.getId())
+                .flatMap(exists -> {
+                    if (!exists)
+                        return Mono.error(new IllegalArgumentException("User not found"));
                     return roleService.find(user.getRole().getId())
-                            .doOnNext(role -> {
-                                if (role == null)
-                                    throw new IllegalArgumentException("Role not found");
+                            .switchIfEmpty(Mono.error(new IllegalArgumentException("Role not found")))
+                            .flatMap(role -> {
                                 user.setRole(role);
-                            })
-                            .flatMap(role -> repository.save(user));
+                                return repository.save(user);
+                            });
                 });
     }
 
-    @Cacheable(cacheNames = "user", key = "{#root.method.name,#id}")
     public Mono<User> find(final String id) {
         return repository.findById(id);
     }
