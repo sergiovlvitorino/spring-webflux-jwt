@@ -20,6 +20,7 @@ class JWTServiceTest {
         Field secretField = JWTService.class.getDeclaredField("secret");
         secretField.setAccessible(true);
         secretField.set(jwtService, "TEST_ONLY_SECRET_DO_NOT_USE_IN_PRODUCTION_12345678901234567890123456789012345678901234567890");
+        jwtService.init();
     }
 
     private String generateValidToken() {

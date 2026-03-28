@@ -9,10 +9,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.io.Serializable;
-
 @Component
-public class SecurityContextRepository implements ServerSecurityContextRepository, Serializable {
+public class SecurityContextRepository implements ServerSecurityContextRepository {
+
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final int PREFIX_LENGTH = BEARER_PREFIX.length();
 
     private final AuthenticationManager authenticationManager;
 
@@ -27,20 +28,14 @@ public class SecurityContextRepository implements ServerSecurityContextRepositor
 
     @Override
     public Mono<SecurityContext> load(ServerWebExchange exchange) {
-        final var authHeader = exchange
-                .getRequest()
-                .getHeaders()
-                .getFirst(HttpHeaders.AUTHORIZATION);
-
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            final var authToken = authHeader.substring(7);
-            final var auth = new UsernamePasswordAuthenticationToken(authToken, authToken);
-            return authenticationManager
-                    .authenticate(auth)
-                    .map(SecurityContextImpl::new);
-        }
-
-        return Mono.empty();
+        return Mono.justOrEmpty(exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION))
+                .filter(header -> header.startsWith(BEARER_PREFIX))
+                .map(header -> header.substring(PREFIX_LENGTH))
+                .flatMap(authToken ->
+                        authenticationManager
+                                .authenticate(new UsernamePasswordAuthenticationToken(authToken, authToken))
+                                .map(SecurityContextImpl::new)
+                );
     }
 
 }

@@ -1,6 +1,7 @@
 package com.sergiovitorino.springwebfluxjwt.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -8,19 +9,13 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.Period;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 @Service
-public class JWTService implements Serializable {
+public class JWTService {
 
     private static final String HMAC_ALGO = "HmacSHA256";
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -29,26 +24,30 @@ public class JWTService implements Serializable {
     private String secret;
     public static final String TOKEN_PREFIX = "Bearer";
 
+    private SecretKeySpec cachedKeySpec;
+
+    @PostConstruct
+    void init() {
+        cachedKeySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_ALGO);
+    }
+
     public String extractUsername(String authToken) {
         return getClaimsFromToken(authToken).get("sub").toString();
     }
 
     public Map<String, Object> getClaimsFromToken(String authToken) {
-        var parts = authToken.split("\\.");
+        var parts = authToken.split("\\.", 4);
         if (parts.length != 3) {
             throw new IllegalArgumentException("Invalid JWT token");
         }
 
-        var payload = parts[1];
-        var signature = parts[2];
-
         var expectedSignature = sign(parts[0] + "." + parts[1]);
-        if (!expectedSignature.equals(signature)) {
+        if (!expectedSignature.equals(parts[2])) {
             throw new SecurityException("Invalid JWT signature");
         }
 
         try {
-            var decoded = Base64.getUrlDecoder().decode(payload);
+            var decoded = Base64.getUrlDecoder().decode(parts[1]);
             @SuppressWarnings("unchecked")
             var claims = MAPPER.readValue(decoded, Map.class);
             return claims;
@@ -95,20 +94,23 @@ public class JWTService implements Serializable {
     }
 
     private String extractAuthorities(final Collection<? extends GrantedAuthority> authorities) {
-        var authoritiesString = authorities.toString();
-        return authoritiesString
-                .substring(1, authoritiesString.length() - 1)
-                .replaceAll(" ", "");
+        var sb = new StringBuilder();
+        boolean first = true;
+        for (GrantedAuthority auth : authorities) {
+            if (!first) sb.append(',');
+            sb.append(auth.getAuthority());
+            first = false;
+        }
+        return sb.toString();
     }
 
     private String sign(String data) {
         try {
             var mac = Mac.getInstance(HMAC_ALGO);
-            var keySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_ALGO);
-            mac.init(keySpec);
+            mac.init(cachedKeySpec);
             var hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return base64Url(hash);
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to sign JWT", e);
         }
     }

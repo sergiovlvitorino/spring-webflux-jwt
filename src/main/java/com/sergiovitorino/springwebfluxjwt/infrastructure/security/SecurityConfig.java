@@ -14,18 +14,16 @@ import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import reactor.core.publisher.Mono;
 
-import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 
 @Configuration
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity(useAuthorizationManager = true)
-public class SecurityConfig implements Serializable {
+public class SecurityConfig {
 
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
-    public static final String AUTHORIZATION = "Authorization";
 
     public SecurityConfig(AuthenticationManager authenticationManager, SecurityContextRepository securityContextRepository) {
         this.authenticationManager = authenticationManager;
@@ -38,11 +36,9 @@ public class SecurityConfig implements Serializable {
         configuration.setAllowCredentials(true);
         configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
         configuration.setAllowedMethods(Arrays.asList("POST", "GET", "PUT", "OPTIONS", "DELETE", "PATCH"));
-        configuration.setExposedHeaders(Collections.singletonList(AUTHORIZATION));
-        configuration.addExposedHeader(AUTHORIZATION);
-        configuration.addAllowedHeader(AUTHORIZATION);
-        configuration.addAllowedHeader("Access-Control-Allow-Origin");
-        configuration.addAllowedHeader("Content-Type");
+        configuration.setExposedHeaders(Collections.singletonList("Authorization"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        configuration.setMaxAge(3600L);
         final var source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

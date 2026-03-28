@@ -7,8 +7,8 @@ Microservice de autenticacao reativa com JWT, Spring WebFlux e MongoDB.
 - **Java 21**
 - **Spring Boot 3.4.3** (WebFlux, Security 6, Data MongoDB Reactive, Validation, Cache)
 - **MongoDB** (reativo)
+- **Caffeine** para cache com TTL e limite de tamanho
 - **JWT** implementado com JDK puro (`javax.crypto.Mac` + `java.util.Base64`)
-- **Sem bibliotecas externas em runtime** - apenas Spring e JDK
 
 ## Arquitetura
 
@@ -22,7 +22,7 @@ domain/
   repository/                Repositorios reativos (UserRepository, RoleRepository)
 infrastructure/
   security/                  JWT, SecurityConfig, AuthenticationManager
-  cache/                     ConcurrentMapCacheManager
+  cache/                     Caffeine (TTL 10min, maxSize 500)
   exception/                 GlobalExceptionHandler
 ```
 
@@ -158,12 +158,24 @@ test/
 - JWT assinado com **HMAC-SHA256** (JDK puro)
 - Autorizacao por metodo via `@PreAuthorize`
 - CSRF desabilitado (API stateless)
-- CORS configuravel via `SecurityConfig`
+- CORS com preflight cache (1h) via `SecurityConfig`
 - Tratamento global de erros via `GlobalExceptionHandler`
+- Secret JWT externalizado via variavel de ambiente (nunca hardcoded)
+
+## Performance
+
+- **Caffeine cache** com TTL 10min e maxSize 500 (substitui ConcurrentMapCacheManager sem TTL)
+- **SecretKeySpec cacheada** no JWTService via `@PostConstruct` (evita alocacao por request)
+- **BCrypt offloaded** para `Schedulers.boundedElastic()` (libera event loop Netty)
+- **CORS preflight cache** de 1h (`maxAge=3600`) reduz OPTIONS requests
+- **Fluxo reativo correto** com `switchIfEmpty(Mono.error())` em vez de throw em `doOnNext`
+- **Graceful shutdown** habilitado com timeout de 30s
+- **HTTP/2** e compressao gzip habilitados
 
 ## Decisoes Tecnicas
 
-- **Zero bibliotecas externas em runtime**: JWT implementado com `javax.crypto.Mac`, cache com `ConcurrentMapCacheManager` do Spring, sem Lombok (construtores explicitos + Java Records)
+- **JWT com JDK puro**: `javax.crypto.Mac` + `java.util.Base64`, sem jjwt ou outras libs
+- **Caffeine** como unica dependencia externa em runtime (cache de alta performance)
 - **Java Records** para DTOs imutaveis: `SaveCommand`, `UpdateCommand`, `FindByIdCommand`, `FindAllCommand`, `Authority`, `AccountCredentials`
-- **Totalmente reativo**: `Mono`/`Flux` em todas as camadas, sem chamadas bloqueantes
+- **Totalmente reativo**: `Mono`/`Flux` em todas as camadas, BCrypt em scheduler separado
 - **Spring Security 6** com Lambda DSL e `useAuthorizationManager`
