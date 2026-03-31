@@ -9,6 +9,7 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.ArrayList;
@@ -108,7 +109,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testFindAll() {
+    void testFindAllPaginated() {
         var user = new User();
         user.setName("List User");
         user.setEmail("list@test.com");
@@ -116,9 +117,12 @@ class UserServiceTest {
         user.setRole(role);
         userService.save(user).block();
 
-        var users = userService.findAll().collectList().block();
-        assertNotNull(users);
-        assertFalse(users.isEmpty());
+        var page = userService.findAll(0, 20).block();
+        assertNotNull(page);
+        assertFalse(page.content().isEmpty());
+        assertEquals(0, page.page());
+        assertEquals(20, page.size());
+        assertTrue(page.totalElements() > 0);
 
         userRepository.deleteAll().block();
     }
@@ -140,7 +144,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testUpdateUser() {
+    void testUpdateUserEncodesPassword() {
         var user = new User();
         user.setName("Before Update");
         user.setEmail("update@test.com");
@@ -149,10 +153,13 @@ class UserServiceTest {
         var saved = userService.save(user).block();
 
         saved.setName("After Update");
+        saved.setPassword("654321");
         saved.setRole(role);
         var updated = userService.update(saved).block();
         assertNotNull(updated);
         assertEquals("After Update", updated.getName());
+        assertNotEquals("654321", updated.getPassword());
+        assertTrue(new BCryptPasswordEncoder().matches("654321", updated.getPassword()));
 
         userRepository.delete(updated).block();
     }

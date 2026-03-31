@@ -6,10 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.io.Serializable;
-
 @Service
-public class CurrentUserService implements Serializable {
+public class CurrentUserService {
 
     private final SecurityContextRepository securityContextRepository;
 
@@ -17,12 +15,11 @@ public class CurrentUserService implements Serializable {
         this.securityContextRepository = securityContextRepository;
     }
 
-    public Mono<String> getCurrentUser(final ServerWebExchange exchange){
+    public Mono<String> getCurrentUser(final ServerWebExchange exchange) {
         return securityContextRepository
                 .load(exchange)
                 .map(SecurityContext::getAuthentication)
                 .map(Authentication::getPrincipal)
                 .cast(String.class);
     }
-
 }

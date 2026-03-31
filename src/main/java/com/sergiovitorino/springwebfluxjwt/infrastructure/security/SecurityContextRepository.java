@@ -23,7 +23,7 @@ public class SecurityContextRepository implements ServerSecurityContextRepositor
 
     @Override
     public Mono<Void> save(ServerWebExchange serverWebExchange, SecurityContext securityContext) {
-        throw new IllegalStateException("Not implemented");
+        return Mono.error(new UnsupportedOperationException("Stateless session - save not supported"));
     }
 
     @Override
@@ -37,5 +37,4 @@ public class SecurityContextRepository implements ServerSecurityContextRepositor
                                 .map(SecurityContextImpl::new)
                 );
     }
-
 }

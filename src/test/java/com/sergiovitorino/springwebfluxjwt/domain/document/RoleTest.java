@@ -2,7 +2,6 @@ package com.sergiovitorino.springwebfluxjwt.domain.document;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -12,7 +11,7 @@ class RoleTest {
     @Test
     void testAllArgsConstructor() {
         var authorities = List.of(new Authority("SAVE_USER"));
-        var role = new Role("r1", "ADMIN", new ArrayList<>(authorities));
+        var role = new Role("r1", "ADMIN", authorities);
 
         assertEquals("r1", role.getId());
         assertEquals("ADMIN", role.getName());
@@ -20,7 +19,7 @@ class RoleTest {
     }
 
     @Test
-    void testGetAuthoritiesInitializesIfNull() {
+    void testGetAuthoritiesReturnsEmptyListIfNull() {
         var role = new Role();
         assertNotNull(role.getAuthorities());
         assertTrue(role.getAuthorities().isEmpty());
@@ -39,12 +38,12 @@ class RoleTest {
     }
 
     @Test
-    void testEqualsAndHashCode() {
+    void testEqualsAndHashCodeById() {
         var role1 = new Role("r1", "ADMIN", List.of());
-        var role2 = new Role("r1", "ADMIN", List.of());
+        var role2 = new Role("r1", "USER", List.of(new Authority("X")));
         var role3 = new Role("r2", "USER", List.of());
 
-        assertEquals(role1, role2);
+        assertEquals(role1, role2, "Roles with same id should be equal");
         assertEquals(role1.hashCode(), role2.hashCode());
         assertNotEquals(role1, role3);
         assertNotEquals(role1, null);

@@ -10,8 +10,9 @@ import org.springframework.stereotype.Service;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.Period;
 import java.util.*;
 
 @Service
@@ -19,10 +20,11 @@ public class JWTService {
 
     private static final String HMAC_ALGO = "HmacSHA256";
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final Duration TOKEN_EXPIRATION = Duration.ofHours(1);
+    private static final String ISSUER = "spring-webflux-jwt";
 
     @Value("${jwt.secret}")
     private String secret;
-    public static final String TOKEN_PREFIX = "Bearer";
 
     private SecretKeySpec cachedKeySpec;
 
@@ -42,7 +44,9 @@ public class JWTService {
         }
 
         var expectedSignature = sign(parts[0] + "." + parts[1]);
-        if (!expectedSignature.equals(parts[2])) {
+        if (!MessageDigest.isEqual(
+                expectedSignature.getBytes(StandardCharsets.UTF_8),
+                parts[2].getBytes(StandardCharsets.UTF_8))) {
             throw new SecurityException("Invalid JWT signature");
         }
 
@@ -58,7 +62,11 @@ public class JWTService {
 
     public boolean isValid(Map<String, Object> claims) {
         var exp = ((Number) claims.get("exp")).longValue();
-        return Instant.ofEpochSecond(exp).isAfter(Instant.now());
+        if (Instant.ofEpochSecond(exp).isBefore(Instant.now())) {
+            return false;
+        }
+        var iss = claims.get("iss");
+        return iss != null && ISSUER.equals(iss.toString());
     }
 
     public boolean validateToken(final String authToken) {
@@ -73,12 +81,12 @@ public class JWTService {
 
     public String generateToken(final UserDetails user) {
         var now = Instant.now();
-        var exp = now.plus(Period.ofDays(10));
+        var exp = now.plus(TOKEN_EXPIRATION);
 
         var claims = new LinkedHashMap<String, Object>();
         claims.put("sub", user.getUsername());
+        claims.put("iss", ISSUER);
         claims.put("authorities", extractAuthorities(user.getAuthorities()));
-        claims.put("Username", user.getUsername());
         claims.put("iat", now.getEpochSecond());
         claims.put("exp", exp.getEpochSecond());
 
@@ -87,7 +95,7 @@ public class JWTService {
             var payloadBytes = MAPPER.writeValueAsBytes(claims);
             var payload = base64Url(payloadBytes);
             var signature = sign(header + "." + payload);
-            return TOKEN_PREFIX + " " + header + "." + payload + "." + signature;
+            return header + "." + payload + "." + signature;
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate JWT", e);
         }

@@ -59,13 +59,13 @@ class UserTest {
     }
 
     @Test
-    void testEqualsAndHashCode() {
+    void testEqualsAndHashCodeById() {
         var role = new Role("r1", "ADMIN", List.of());
         var user1 = new User("id1", "John", "john@test.com", "pass", true, role);
-        var user2 = new User("id1", "John", "john@test.com", "pass", true, role);
+        var user2 = new User("id1", "Jane", "jane@test.com", "other", false, role);
         var user3 = new User("id2", "Jane", "jane@test.com", "pass", true, role);
 
-        assertEquals(user1, user2);
+        assertEquals(user1, user2, "Users with same id should be equal");
         assertEquals(user1.hashCode(), user2.hashCode());
         assertNotEquals(user1, user3);
         assertNotEquals(user1, null);

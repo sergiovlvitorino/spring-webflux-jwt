@@ -100,22 +100,28 @@ class UserRestControllerTest {
 
         Assertions.assertEquals(command.email(), userResult.getEmail());
         userRepository.delete(userResult).block();
-
     }
 
     @Test
     void testIfGetIsOK() {
         webTestClient
                 .get()
-                .uri("/user")
+                .uri(uriBuilder -> uriBuilder
+                        .path("/user")
+                        .queryParam("page", 0)
+                        .queryParam("size", 20)
+                        .build())
                 .header(HttpHeaders.AUTHORIZATION, httpHeaders.getFirst(HttpHeaders.AUTHORIZATION))
-                .accept(MediaType.TEXT_EVENT_STREAM)
+                .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus()
                 .isOk()
-                .expectBodyList(User.class)
-                .hasSize(1);
-
+                .expectBody()
+                .jsonPath("$.content").isArray()
+                .jsonPath("$.content.length()").isEqualTo(1)
+                .jsonPath("$.page").isEqualTo(0)
+                .jsonPath("$.size").isEqualTo(20)
+                .jsonPath("$.totalElements").isEqualTo(1);
     }
 
     @Test

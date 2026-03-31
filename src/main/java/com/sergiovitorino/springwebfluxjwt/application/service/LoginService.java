@@ -6,13 +6,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-
-import java.io.Serializable;
+import reactor.core.scheduler.Schedulers;
 
 @Service
-public class LoginService implements Serializable {
+public class LoginService {
 
-    private static final long serialVersionUID = 1L;
     private final UserService userService;
     private final JWTService jwtService;
     private final PasswordEncoder passwordEncoder;
@@ -26,12 +24,12 @@ public class LoginService implements Serializable {
     public Mono<String> authenticate(final AccountCredentials accountCredentials) {
         return userService
                 .findByUsername(accountCredentials.username())
-                .map(userDetails ->
-                        validate(accountCredentials, userDetails)
-                                ? jwtService.generateToken(userDetails)
-                                : ""
-                )
-                .defaultIfEmpty("");
+                .flatMap(userDetails ->
+                        Mono.fromCallable(() -> validate(accountCredentials, userDetails))
+                                .subscribeOn(Schedulers.boundedElastic())
+                                .filter(valid -> valid)
+                                .map(valid -> jwtService.generateToken(userDetails))
+                );
     }
 
     private boolean validate(final AccountCredentials credentials, final UserDetails userDetails) {
@@ -41,5 +39,4 @@ public class LoginService implements Serializable {
                 && userDetails.isAccountNonLocked()
                 && userDetails.isCredentialsNonExpired();
     }
-
 }
