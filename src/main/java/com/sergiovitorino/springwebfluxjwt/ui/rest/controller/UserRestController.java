@@ -5,6 +5,7 @@ import com.sergiovitorino.springwebfluxjwt.application.command.FindByIdCommand;
 import com.sergiovitorino.springwebfluxjwt.application.command.UserCommandHandler;
 import com.sergiovitorino.springwebfluxjwt.application.command.user.SaveCommand;
 import com.sergiovitorino.springwebfluxjwt.application.command.user.UpdateCommand;
+import com.sergiovitorino.springwebfluxjwt.application.dto.PageResponse;
 import com.sergiovitorino.springwebfluxjwt.domain.document.User;
 import com.sergiovitorino.springwebfluxjwt.infrastructure.security.CurrentUserService;
 import org.springframework.http.HttpStatus;
@@ -12,16 +13,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import jakarta.validation.Valid;
-import java.io.Serializable;
 
 @RestController
 @RequestMapping("/user")
 @Validated
-public class UserRestController implements Serializable {
+public class UserRestController {
 
     private final UserCommandHandler commandHandler;
     private final CurrentUserService currentUserService;
@@ -46,19 +45,21 @@ public class UserRestController implements Serializable {
 
     @PreAuthorize("hasAuthority('RETRIEVE_USER')")
     @GetMapping
-    public Flux<User> findAll(){
-        return commandHandler.execute(new FindAllCommand());
+    public Mono<PageResponse<User>> findAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return commandHandler.execute(new FindAllCommand(page, size));
     }
 
     @PreAuthorize("hasAuthority('RETRIEVE_USER')")
     @GetMapping("/{id}")
-    public Mono<User> findById(@PathVariable("id") final String id){
+    public Mono<User> findById(@PathVariable("id") final String id) {
         return commandHandler.execute(new FindByIdCommand(id));
     }
 
     @PreAuthorize("hasAuthority('RETRIEVE_USER')")
     @GetMapping("/currentUser")
-    public Mono<String> findCurrentUser(final ServerWebExchange exchange){
+    public Mono<String> findCurrentUser(final ServerWebExchange exchange) {
         return currentUserService.getCurrentUser(exchange);
     }
 }

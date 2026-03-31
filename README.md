@@ -5,9 +5,8 @@ Microservice de autenticacao reativa com JWT, Spring WebFlux e MongoDB.
 ## Stack
 
 - **Java 21**
-- **Spring Boot 3.4.3** (WebFlux, Security 6, Data MongoDB Reactive, Validation, Cache)
-- **MongoDB** (reativo)
-- **Caffeine** para cache com TTL e limite de tamanho
+- **Spring Boot 3.4.3** (WebFlux, Security 6, Data MongoDB Reactive, Validation, Actuator)
+- **MongoDB** (reativo, com indices automaticos)
 - **JWT** implementado com JDK puro (`javax.crypto.Mac` + `java.util.Base64`)
 
 ## Arquitetura
@@ -17,12 +16,12 @@ ui/rest/controller/          Controllers REST (Login, User, Role)
 application/
   service/                   Servicos (Login, User, Role)
   command/                   Command Pattern (SaveCommand, UpdateCommand, FindAllCommand, FindByIdCommand)
+  dto/                       DTOs de resposta (PageResponse)
 domain/
   document/                  Entidades MongoDB (User, Role, Authority)
   repository/                Repositorios reativos (UserRepository, RoleRepository)
 infrastructure/
   security/                  JWT, SecurityConfig, AuthenticationManager
-  cache/                     Caffeine (TTL 10min, maxSize 500)
   exception/                 GlobalExceptionHandler
 ```
 
@@ -33,11 +32,25 @@ infrastructure/
 | POST   | `/login`          | Nao  | -              | Autenticar e obter JWT     |
 | POST   | `/user`           | Sim  | SAVE_USER      | Criar usuario              |
 | PUT    | `/user`           | Sim  | SAVE_USER      | Atualizar usuario          |
-| GET    | `/user`           | Sim  | RETRIEVE_USER  | Listar usuarios            |
+| GET    | `/user?page=0&size=20` | Sim | RETRIEVE_USER | Listar usuarios (paginado) |
 | GET    | `/user/{id}`      | Sim  | RETRIEVE_USER  | Buscar usuario por ID      |
 | GET    | `/user/currentUser` | Sim | RETRIEVE_USER | Usuario autenticado atual  |
-| GET    | `/role`           | Sim  | RETRIEVE_ROLE  | Listar roles               |
+| GET    | `/role?page=0&size=20` | Sim | RETRIEVE_ROLE | Listar roles (paginado)    |
 | GET    | `/role/{id}`      | Sim  | RETRIEVE_ROLE  | Buscar role por ID         |
+
+### Paginacao
+
+Os endpoints de listagem retornam `PageResponse`:
+
+```json
+{
+  "content": [...],
+  "page": 0,
+  "size": 20,
+  "totalElements": 42,
+  "totalPages": 3
+}
+```
 
 ## Autenticacao
 
@@ -56,17 +69,16 @@ curl http://localhost:8080/user \
   -H "Authorization: Bearer <token>"
 ```
 
-O token expira em 10 dias e e assinado com HMAC-SHA256.
+O token expira em **1 hora**, inclui claim `iss` (issuer) e e assinado com HMAC-SHA256.
 
 ## Configuracao
 
-### application.properties
+### Variaveis de ambiente
 
-| Propriedade     | Descricao                          | Obrigatoria |
-|-----------------|------------------------------------|-------------|
-| `jwt.secret`    | Chave secreta para assinatura JWT  | Sim         |
-
-Em producao, configure `jwt.secret` via variavel de ambiente:
+| Variavel              | Descricao                          | Obrigatoria |
+|-----------------------|------------------------------------|-------------|
+| `JWT_SECRET`          | Chave secreta para assinatura JWT  | Sim         |
+| `CORS_ALLOWED_ORIGINS`| Origens permitidas (separadas por virgula) | Nao (default: `http://localhost:3000`) |
 
 ```bash
 JWT_SECRET=sua-chave-secreta-aqui java -jar springwebfluxjwt.jar
@@ -99,13 +111,7 @@ mvn clean compile
 Os testes usam embedded MongoDB (flapdoodle) e nao requerem banco externo.
 
 ```bash
-mvn test
-```
-
-### Executar testes com cobertura
-
-```bash
-mvn clean test
+mvn clean verify
 ```
 
 O relatorio de cobertura (JaCoCo) e gerado em `target/site/jacoco/index.html`.
@@ -113,69 +119,63 @@ O relatorio de cobertura (JaCoCo) e gerado em `target/site/jacoco/index.html`.
 ### Executar a aplicacao
 
 ```bash
-mvn spring-boot:run
+JWT_SECRET=minha-chave mvn spring-boot:run
 ```
 
 ## Testes
 
-54 testes com **96% de cobertura** de codigo (instrucoes JaCoCo).
+56 testes cobrindo todas as camadas.
 
 ### Estrutura de testes
 
 ```
 test/
   ui/rest/controller/test/
-    LoginRestControllerTest      5 testes - autenticacao, validacao, credenciais invalidas
-    UserRestControllerTest       8 testes - CRUD, duplicata, auth, current user
-    RoleRestControllerTest       2 testes - listagem e busca por ID
+    LoginRestControllerTest       5 testes - autenticacao, validacao, credenciais invalidas
+    UserRestControllerTest        8 testes - CRUD, paginacao, duplicata, auth, current user
+    RoleRestControllerTest        2 testes - listagem paginada e busca por ID
   application/service/
-    UserServiceTest              9 testes - save, update, find, duplicata, erros
-    RoleServiceTest              6 testes - save, update, find, propagacao para users
+    UserServiceTest               9 testes - save, update com BCrypt, find, paginacao, erros
+    RoleServiceTest               6 testes - save, update, find, paginacao, propagacao para users
   infrastructure/
     security/
-      JWTServiceTest            10 testes - geracao, validacao, claims, assinatura adulterada
+      JWTServiceTest             12 testes - geracao, validacao, claims, iss, timing-safe
     exception/
-      GlobalExceptionHandlerTest 2 testes - IllegalArgument (400), Exception generica (500)
+      GlobalExceptionHandlerTest  2 testes - IllegalArgument (400), Exception generica (500)
   domain/document/
-    UserTest                     7 testes - construtores, equals, hashCode, authorities, encode
-    RoleTest                     5 testes - construtores, null authorities, equals, hashCode
+    UserTest                      7 testes - construtores, equals por id, authorities, encode
+    RoleTest                      5 testes - construtores, null authorities, equals por id
 ```
-
-### Cobertura por camada
-
-| Camada | Cobertura |
-|--------|-----------|
-| Controllers | 100% |
-| Services | 92-100% |
-| Security | 88-100% |
-| Domain | 100% |
-| Commands | 100% |
-| Exception Handler | 100% |
 
 ## Seguranca
 
-- Senhas codificadas com **BCrypt**
-- JWT assinado com **HMAC-SHA256** (JDK puro)
+- Senhas codificadas com **BCrypt** (encode no save E update)
+- BCrypt offloaded para `Schedulers.boundedElastic()` (nao bloqueia event loop)
+- JWT assinado com **HMAC-SHA256** (JDK puro), comparacao timing-safe com `MessageDigest.isEqual()`
+- Token com expiracao de **1 hora** e claim `iss` validado
 - Autorizacao por metodo via `@PreAuthorize`
 - CSRF desabilitado (API stateless)
-- CORS com preflight cache (1h) via `SecurityConfig`
-- Tratamento global de erros via `GlobalExceptionHandler`
-- Secret JWT externalizado via variavel de ambiente (nunca hardcoded)
+- CORS configuravel via variavel de ambiente
+- Tratamento global de erros via `@RestControllerAdvice`
+- Secret JWT externalizado via variavel de ambiente
+- Indice unico no campo `email` do User (`@Indexed(unique=true)`)
 
 ## Performance
 
-- **Caffeine cache** com TTL 10min e maxSize 500 (substitui ConcurrentMapCacheManager sem TTL)
-- **SecretKeySpec cacheada** no JWTService via `@PostConstruct` (evita alocacao por request)
-- **BCrypt offloaded** para `Schedulers.boundedElastic()` (libera event loop Netty)
-- **CORS preflight cache** de 1h (`maxAge=3600`) reduz OPTIONS requests
-- **Fluxo reativo correto** com `switchIfEmpty(Mono.error())` em vez de throw em `doOnNext`
-- **Graceful shutdown** habilitado com timeout de 30s
+- **Paginacao** em todos os endpoints de listagem (previne OOM)
+- **Indice MongoDB** unico no campo `email` (evita collection scan)
+- **SecretKeySpec cacheada** no JWTService via `@PostConstruct`
+- **BCrypt offloaded** para `Schedulers.boundedElastic()` no save, update e login
+- **CORS preflight cache** de 1h (`maxAge=3600`)
+- **Graceful shutdown** com timeout de 30s
 - **HTTP/2** e compressao gzip habilitados
+- **Concurrency limit** no `RoleService.update()` flatMap (max 4)
 
 ## Decisoes Tecnicas
 
-- **JWT com JDK puro**: `javax.crypto.Mac` + `java.util.Base64`, sem jjwt ou outras libs
-- **Caffeine** como unica dependencia externa em runtime (cache de alta performance)
-- **Java Records** para DTOs imutaveis: `SaveCommand`, `UpdateCommand`, `FindByIdCommand`, `FindAllCommand`, `Authority`, `AccountCredentials`
-- **Totalmente reativo**: `Mono`/`Flux` em todas as camadas, BCrypt em scheduler separado
+- **JWT com JDK puro**: `javax.crypto.Mac` + `java.util.Base64`, sem dependencias externas
+- **Java Records** para DTOs imutaveis: `SaveCommand`, `UpdateCommand`, `FindByIdCommand`, `FindAllCommand`, `Authority`, `AccountCredentials`, `PageResponse`
+- **Totalmente reativo**: `Mono`/`Flux` em todas as camadas, operacoes bloqueantes em scheduler separado
 - **Spring Security 6** com Lambda DSL e `useAuthorizationManager`
+- **Identity-based equals/hashCode** nas entidades (apenas por `id`)
+- **Spring Boot Actuator** com health, info e metrics expostos

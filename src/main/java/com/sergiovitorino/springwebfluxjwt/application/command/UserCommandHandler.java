@@ -2,11 +2,11 @@ package com.sergiovitorino.springwebfluxjwt.application.command;
 
 import com.sergiovitorino.springwebfluxjwt.application.command.user.SaveCommand;
 import com.sergiovitorino.springwebfluxjwt.application.command.user.UpdateCommand;
+import com.sergiovitorino.springwebfluxjwt.application.dto.PageResponse;
 import com.sergiovitorino.springwebfluxjwt.application.service.UserService;
 import com.sergiovitorino.springwebfluxjwt.domain.document.Role;
 import com.sergiovitorino.springwebfluxjwt.domain.document.User;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -28,8 +28,8 @@ public class UserCommandHandler {
         return service.save(user);
     }
 
-    public Flux<User> execute(FindAllCommand command) {
-        return service.findAll();
+    public Mono<PageResponse<User>> execute(FindAllCommand command) {
+        return service.findAll(command.page(), command.size());
     }
 
     public Mono<User> execute(FindByIdCommand command) {

@@ -26,13 +26,19 @@ class JWTServiceTest {
     private String generateValidToken() {
         var userDetails = new User("test@email.com", "password",
                 AuthorityUtils.createAuthorityList("ROLE_USER", "SAVE_USER"));
-        return jwtService.generateToken(userDetails).substring("Bearer ".length());
+        return jwtService.generateToken(userDetails);
     }
 
     @Test
     void testGenerateTokenAndExtractUsername() {
         var token = generateValidToken();
         assertEquals("test@email.com", jwtService.extractUsername(token));
+    }
+
+    @Test
+    void testGenerateTokenDoesNotContainBearerPrefix() {
+        var token = generateValidToken();
+        assertFalse(token.startsWith("Bearer "));
     }
 
     @Test
@@ -57,10 +63,11 @@ class JWTServiceTest {
         Map<String, Object> claims = jwtService.getClaimsFromToken(token);
 
         assertEquals("test@email.com", claims.get("sub"));
-        assertEquals("test@email.com", claims.get("Username"));
+        assertEquals("spring-webflux-jwt", claims.get("iss"));
         assertNotNull(claims.get("authorities"));
         assertNotNull(claims.get("iat"));
         assertNotNull(claims.get("exp"));
+        assertNull(claims.get("Username"), "Redundant Username claim should not exist");
     }
 
     @Test
@@ -68,6 +75,22 @@ class JWTServiceTest {
         var token = generateValidToken();
         var claims = jwtService.getClaimsFromToken(token);
         assertTrue(jwtService.isValid(claims));
+    }
+
+    @Test
+    void testIsValidReturnsFalseForWrongIssuer() {
+        var token = generateValidToken();
+        var claims = jwtService.getClaimsFromToken(token);
+        claims.put("iss", "wrong-issuer");
+        assertFalse(jwtService.isValid(claims));
+    }
+
+    @Test
+    void testIsValidReturnsFalseForMissingIssuer() {
+        var token = generateValidToken();
+        var claims = jwtService.getClaimsFromToken(token);
+        claims.remove("iss");
+        assertFalse(jwtService.isValid(claims));
     }
 
     @Test
@@ -88,13 +111,5 @@ class JWTServiceTest {
         var parts = token.split("\\.");
         var tampered = parts[0] + ".dGFtcGVyZWQ" + "." + parts[2];
         assertThrows(SecurityException.class, () -> jwtService.getClaimsFromToken(tampered));
-    }
-
-    @Test
-    void testGenerateTokenContainsBearerPrefix() {
-        var userDetails = new User("test@email.com", "password",
-                AuthorityUtils.createAuthorityList("ROLE_USER"));
-        var token = jwtService.generateToken(userDetails);
-        assertTrue(token.startsWith("Bearer "));
     }
 }

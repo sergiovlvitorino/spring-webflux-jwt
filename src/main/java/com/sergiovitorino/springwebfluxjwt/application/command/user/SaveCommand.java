@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 
 public record SaveCommand(
         @NotEmpty String name,
-        @Email String email,
+        @NotEmpty @Email String email,
         @NotEmpty @Size(min = 6, max = 16) String password,
         @NotEmpty String roleId
 ) {

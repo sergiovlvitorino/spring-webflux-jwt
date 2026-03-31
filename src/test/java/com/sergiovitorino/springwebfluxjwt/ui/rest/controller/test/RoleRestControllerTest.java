@@ -73,18 +73,26 @@ class RoleRestControllerTest {
         roleRepository.deleteAll().block();
         userRepository.deleteAll().block();
     }
+
     @Test
     void testIfGetIsOK() {
         webTestClient
                 .get()
-                .uri("/role")
+                .uri(uriBuilder -> uriBuilder
+                        .path("/role")
+                        .queryParam("page", 0)
+                        .queryParam("size", 20)
+                        .build())
                 .header(HttpHeaders.AUTHORIZATION, httpHeaders.getFirst(HttpHeaders.AUTHORIZATION))
-                .accept(MediaType.TEXT_EVENT_STREAM)
+                .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus()
                 .isOk()
-                .expectBodyList(Role.class)
-                .hasSize(1);
+                .expectBody()
+                .jsonPath("$.content").isArray()
+                .jsonPath("$.content.length()").isEqualTo(1)
+                .jsonPath("$.page").isEqualTo(0)
+                .jsonPath("$.totalElements").isEqualTo(1);
     }
 
     @Test

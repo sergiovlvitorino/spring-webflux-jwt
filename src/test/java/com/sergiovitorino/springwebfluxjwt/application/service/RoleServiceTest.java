@@ -47,15 +47,17 @@ class RoleServiceTest {
     }
 
     @Test
-    void testFindAll() {
+    void testFindAllPaginated() {
         var role = new Role();
         role.setName("FIND_ALL_ROLE");
         role.setAuthorities(List.of());
         roleRepository.save(role).block();
 
-        var roles = roleService.findAll().collectList().block();
-        assertNotNull(roles);
-        assertFalse(roles.isEmpty());
+        var page = roleService.findAll(0, 20).block();
+        assertNotNull(page);
+        assertFalse(page.content().isEmpty());
+        assertEquals(0, page.page());
+        assertEquals(20, page.size());
 
         roleRepository.delete(role).block();
     }

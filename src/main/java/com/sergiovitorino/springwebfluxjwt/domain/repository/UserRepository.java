@@ -1,6 +1,7 @@
 package com.sergiovitorino.springwebfluxjwt.domain.repository;
 
 import com.sergiovitorino.springwebfluxjwt.domain.document.User;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
@@ -14,4 +15,6 @@ public interface UserRepository extends ReactiveMongoRepository<User, String> {
     Flux<User> findByRoleId(String id);
 
     Mono<Boolean> existsByEmail(String email);
+
+    Flux<User> findAllBy(Pageable pageable);
 }

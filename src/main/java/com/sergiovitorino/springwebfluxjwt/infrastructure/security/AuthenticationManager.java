@@ -1,5 +1,6 @@
 package com.sergiovitorino.springwebfluxjwt.infrastructure.security;
 
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -7,10 +8,8 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import java.io.Serializable;
-
 @Component
-public class AuthenticationManager implements ReactiveAuthenticationManager, Serializable {
+public class AuthenticationManager implements ReactiveAuthenticationManager {
 
     private final JWTService jwtService;
 
@@ -21,7 +20,7 @@ public class AuthenticationManager implements ReactiveAuthenticationManager, Ser
     @Override
     public Mono<Authentication> authenticate(final Authentication authentication) {
         final var authToken = authentication.getCredentials().toString();
-        if (authToken != null) {
+        try {
             final var claims = jwtService.getClaimsFromToken(authToken);
             if (jwtService.isValid(claims)) {
                 final var username = claims.get("sub").toString();
@@ -30,8 +29,9 @@ public class AuthenticationManager implements ReactiveAuthenticationManager, Ser
                 final var authenticationToken = new UsernamePasswordAuthenticationToken(username, null, authoritiesList);
                 return Mono.just(authenticationToken);
             }
+            return Mono.error(new BadCredentialsException("Expired or invalid JWT token"));
+        } catch (Exception e) {
+            return Mono.error(new BadCredentialsException("Invalid JWT token", e));
         }
-        return Mono.empty();
     }
-
 }

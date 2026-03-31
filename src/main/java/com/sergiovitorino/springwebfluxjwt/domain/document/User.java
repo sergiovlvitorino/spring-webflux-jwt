@@ -2,24 +2,23 @@ package com.sergiovitorino.springwebfluxjwt.domain.document;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.Objects;
 
 @Document
-public class User implements UserDetails, Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class User implements UserDetails {
 
     @Id
     private String id;
     private String name;
+    @Indexed(unique = true)
     private String email;
     @JsonIgnore
     private String password;
@@ -130,12 +129,12 @@ public class User implements UserDetails, Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
-        return enabled == user.enabled && Objects.equals(id, user.id) && Objects.equals(name, user.name) && Objects.equals(email, user.email) && Objects.equals(password, user.password) && Objects.equals(role, user.role);
+        return Objects.equals(id, user.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, email, password, enabled, role);
+        return Objects.hash(id);
     }
 
     @Override

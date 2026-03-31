@@ -3,20 +3,15 @@ package com.sergiovitorino.springwebfluxjwt.ui.rest.controller;
 import com.sergiovitorino.springwebfluxjwt.application.command.FindAllCommand;
 import com.sergiovitorino.springwebfluxjwt.application.command.FindByIdCommand;
 import com.sergiovitorino.springwebfluxjwt.application.command.RoleCommandHandler;
+import com.sergiovitorino.springwebfluxjwt.application.dto.PageResponse;
 import com.sergiovitorino.springwebfluxjwt.domain.document.Role;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
-
-import java.io.Serializable;
 
 @RestController
 @RequestMapping("/role")
-public class RoleRestController implements Serializable {
+public class RoleRestController {
 
     private final RoleCommandHandler commandHandler;
 
@@ -26,12 +21,15 @@ public class RoleRestController implements Serializable {
 
     @PreAuthorize("hasAuthority('RETRIEVE_ROLE')")
     @GetMapping
-    public Flux<Role> get(){
-        return commandHandler.execute(new FindAllCommand());
+    public Mono<PageResponse<Role>> get(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return commandHandler.execute(new FindAllCommand(page, size));
     }
 
     @PreAuthorize("hasAuthority('RETRIEVE_ROLE')")
     @GetMapping("/{id}")
-    public Mono<Role> get(@PathVariable("id") final String id){ return commandHandler.execute(new FindByIdCommand(id)); }
-
+    public Mono<Role> get(@PathVariable("id") final String id) {
+        return commandHandler.execute(new FindByIdCommand(id));
+    }
 }
